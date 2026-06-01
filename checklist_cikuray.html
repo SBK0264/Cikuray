@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist Pendakian Cikuray</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1f2d45;
+    --accent: #3b82f6;
+    --accent2: #f59e0b;
+    --accent3: #10b981;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #ef4444;
+    --kelompok: #8b5cf6;
+    --pribadi: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 80px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  .header { text-align: center; margin-bottom: 28px; }
+  .header .mountain { font-size: 44px; display: block; margin-bottom: 8px; }
+  .header h1 {
+    font-size: clamp(18px, 5vw, 26px); font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #60a5fa, #f59e0b);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--muted); font-size: 12px; font-family: 'Space Mono', monospace; }
+
+  /* TAB SWITCH kelompok/pribadi */
+  .tab-bar {
+    display: flex; gap: 8px; margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 5px;
+  }
+  .tab-btn {
+    flex: 1; padding: 10px 8px; border: none; border-radius: 10px;
+    font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px;
+    cursor: pointer; transition: all 0.25s; color: var(--muted); background: transparent;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .tab-btn.active-kelompok { background: rgba(139,92,246,0.18); color: #a78bfa; border: 1px solid rgba(139,92,246,0.35); }
+  .tab-btn.active-pribadi  { background: rgba(245,158,11,0.18); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+
+  /* PROGRESS */
+  .progress-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 18px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .progress-label { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; white-space: nowrap; }
+  .progress-bar-bg { flex: 1; height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%; border-radius: 99px;
+    transition: width 0.4s cubic-bezier(.4,0,.2,1); width: 0%;
+  }
+  .fill-kelompok { background: linear-gradient(90deg, #8b5cf6, #3b82f6); }
+  .fill-pribadi  { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+  .progress-text { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .text-kelompok { color: #a78bfa; }
+  .text-pribadi  { color: #fbbf24; }
+  .done-badge {
+    display: none; font-size: 11px;
+    background: rgba(16,185,129,0.15); color: #10b981;
+    border: 1px solid rgba(16,185,129,0.3); border-radius: 99px;
+    padding: 2px 9px; font-family: 'Space Mono', monospace;
+  }
+
+  /* SECTION PANEL */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* CATEGORY */
+  .category { margin-bottom: 18px; }
+  .cat-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; cursor: pointer; user-select: none;
+  }
+  .cat-icon { font-size: 18px; }
+  .cat-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted); flex: 1;
+  }
+  .cat-count { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+  .cat-toggle { font-size: 11px; color: var(--muted); transition: transform 0.3s; }
+  .cat-toggle.open { transform: rotate(180deg); }
+  .items-wrap { display: flex; flex-direction: column; gap: 5px; overflow: hidden; transition: max-height 0.35s cubic-bezier(.4,0,.2,1); }
+
+  /* ITEM */
+  .item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 11px; padding: 11px 14px;
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .item:hover { background: var(--surface2); }
+  .item.checked { background: rgba(16,185,129,0.05); border-color: rgba(16,185,129,0.2); }
+  .item.checked .item-name { text-decoration: line-through; color: var(--muted); }
+
+  .checkbox {
+    width: 20px; height: 20px; border-radius: 5px; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.18s; font-size: 12px; cursor: pointer;
+  }
+  .item.checked .checkbox { background: #10b981; border-color: #10b981; }
+
+  .item-info { flex: 1; min-width: 0; cursor: pointer; }
+  .item-name { font-size: 13px; font-weight: 600; transition: color 0.18s; }
+  .item-note { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'Space Mono', monospace; }
+
+  .priority {
+    font-size: 9px; padding: 2px 7px; border-radius: 99px;
+    font-weight: 700; letter-spacing: 0.5px; font-family: 'Space Mono', monospace; flex-shrink: 0;
+  }
+  .priority.wajib   { background: rgba(239,68,68,0.13); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .priority.penting { background: rgba(245,158,11,0.13); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+  .priority.opsional{ background: rgba(100,116,139,0.13); color: var(--muted); border: 1px solid rgba(100,116,139,0.25); }
+
+  .delete-btn {
+    width: 26px; height: 26px; border-radius: 6px; border: none;
+    background: rgba(239,68,68,0.1); color: #f87171;
+    font-size: 14px; cursor: pointer; flex-shrink: 0;
+    display: none; align-items: center; justify-content: center;
+    transition: background 0.18s;
+  }
+  .delete-btn:hover { background: rgba(239,68,68,0.25); }
+  .edit-mode .delete-btn { display: flex; }
+  .edit-mode .item { border-color: rgba(239,68,68,0.2); }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 6px 0 18px; }
+
+  /* ADD ITEM MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.7); align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
+    width: 100%; max-width: 520px;
+    animation: slideUp 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .modal label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; color: var(--text);
+    font-family: 'Sora', sans-serif; font-size: 13px; margin-bottom: 14px; outline: none;
+    transition: border-color 0.18s;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { border-color: var(--accent); }
+  .modal textarea { resize: none; height: 60px; }
+  .modal select option { background: #1a2235; }
+  .modal-row { display: flex; gap: 10px; }
+  .modal-row > div { flex: 1; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 4px; }
+  .btn-cancel {
+    flex: 1; padding: 11px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-family: 'Sora', sans-serif;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s;
+  }
+  .btn-cancel:hover { border-color: var(--danger); color: var(--danger); }
+  .btn-add {
+    flex: 2; padding: 11px; border-radius: 10px; border: none;
+    background: var(--accent); color: #fff; font-family: 'Sora', sans-serif;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.18s;
+  }
+  .btn-add:hover { background: #2563eb; }
+
+  /* BOTTOM ACTIONS */
+  .bottom-actions {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 12px 16px 20px;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    display: flex; gap: 10px; justify-content: center; z-index: 50;
+  }
+  .fab {
+    padding: 11px 20px; border-radius: 99px; border: none;
+    font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .fab-add { background: var(--accent); color: #fff; }
+  .fab-add:hover { background: #2563eb; }
+  .fab-edit { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+  .fab-edit.active { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: #f87171; }
+  .fab-reset { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+  .fab-reset:hover { border-color: var(--danger); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="mountain">🏔️</span>
+  <h1>Checklist Pendakian Cikuray</h1>
+  <p>Via Pemancar · Pertengahan Juni · 2.821 mdpl</p>
+</div>
+
+<!-- TAB -->
+<div class="tab-bar">
+  <button class="tab-btn active-kelompok" id="tab-kelompok" onclick="switchTab('kelompok')">
+    🫂 Kelompok
+  </button>
+  <button class="tab-btn" id="tab-pribadi" onclick="switchTab('pribadi')">
+    🧍 Pribadi
+  </button>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-label" id="progressLabel">KELOMPOK</div>
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill fill-kelompok" id="progressFill"></div>
+  </div>
+  <div class="progress-text text-kelompok" id="progressText">0 / 0</div>
+  <div class="done-badge" id="doneBadge">✓ SIAP!</div>
+</div>
+
+<!-- PANELS -->
+<div class="panel active" id="panel-kelompok"></div>
+<div class="panel" id="panel-pribadi"></div>
+
+<!-- BOTTOM ACTIONS -->
+<div class="bottom-actions">
+  <button class="fab fab-add" onclick="openModal()">＋ Tambah</button>
+  <button class="fab fab-edit" id="editBtn" onclick="toggleEditMode()">✏️ Hapus</button>
+  <button class="fab fab-reset" onclick="resetAll()">↺ Reset</button>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>➕ Tambah Barang</h3>
+    <label>Nama Barang *</label>
+    <input type="text" id="inputName" placeholder="cth: Gaiter, Kamera mirrorless...">
+    <label>Catatan (opsional)</label>
+    <textarea id="inputNote" placeholder="cth: Beli di toko outdoor..."></textarea>
+    <div class="modal-row">
+      <div>
+        <label>Kelompok</label>
+        <select id="inputSection">
+          <option value="kelompok">🫂 Kelompok</option>
+          <option value="pribadi">🧍 Pribadi</option>
+        </select>
+      </div>
+      <div>
+        <label>Kategori</label>
+        <select id="inputCat"></select>
+      </div>
+      <div>
+        <label>Prioritas</label>
+        <select id="inputPriority">
+          <option value="wajib">🔴 Wajib</option>
+          <option value="penting">🟡 Penting</option>
+          <option value="opsional">⚫ Opsional</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Batal</button>
+      <button class="btn-add" onclick="addItem()">Tambahkan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const defaultData = {
+  kelompok: [
+    {
+      icon: "🎒", title: "Carrier & Shelter",
+      items: [
+        { name: "Tenda", note: "Dome 3 musim, cek fly sheet & pasak", priority: "wajib" },
+        { name: "Kompor Mini + Gas", note: "Cek gas sebelum berangkat", priority: "wajib" },
+        { name: "Nesting / Panci", note: "Ukuran sesuai jumlah orang", priority: "wajib" },
+        { name: "Matras / Sleeping Pad", note: "Satu per orang, isolasi dari tanah dingin", priority: "wajib" },
+        { name: "Trekking Pole", note: "Bantu banget di turunan terjal", priority: "penting" },
+      ]
+    },
+    {
+      icon: "💧", title: "Air & Makanan Bersama",
+      items: [
+        { name: "Air Minum — min. 4L/orang", note: "‼️ NOL sumber air di jalur Pemancar", priority: "wajib" },
+        { name: "Nasi/Makan Berat (2x trip)", note: "Makan siang hari H + pagi H+1", priority: "wajib" },
+        { name: "Mie Instan / Ready to eat", note: "Cadangan makan malam darurat", priority: "wajib" },
+        { name: "Snack Energi Kelompok", note: "Coklat, trail mix, biskuit kalori tinggi", priority: "wajib" },
+        { name: "Kopi / Teh sachet", note: "Ritual wajib pas sunrise 🌄", priority: "penting" },
+      ]
+    },
+    {
+      icon: "🌌", title: "Fotografi & Astro",
+      items: [
+        { name: "Tripod", note: "Wajib untuk long exposure Milky Way", priority: "wajib" },
+        { name: "App PhotoPills / Stellarium", note: "Plan posisi Milky Way & waktu golden hour", priority: "wajib" },
+        { name: "Remote shutter / Timer", note: "Hindari camera shake saat foto bintang", priority: "penting" },
+      ]
+    },
+    {
+      icon: "🩹", title: "P3K Kelompok",
+      items: [
+        { name: "Paracetamol / Ibuprofen", note: "Demam, nyeri otot", priority: "wajib" },
+        { name: "Plester & perban", note: "Blister kaki paling sering terjadi", priority: "wajib" },
+        { name: "Antiseptik (Betadine / alkohol swab)", note: "", priority: "wajib" },
+        { name: "Emergency blanket / survival blanket", note: "Lipat kecil, bisa selamatkan nyawa dari hipotermia", priority: "penting" },
+        { name: "Peluit darurat", note: "Standar SAR, kecil tapi penting", priority: "penting" },
+      ]
+    },
+    {
+      icon: "📋", title: "Dokumen & Administrasi",
+      items: [
+        { name: "Uang tunai cukup", note: "Tiket masuk, parkir, ojek", priority: "wajib" },
+        { name: "Nomor kontak darurat tersimpan", note: "SAR Garut: (0262) 233030", priority: "wajib" },
+        { name: "Info cuaca terbaru", note: "Cek H-1 dan pagi hari H di BMKG / Windy", priority: "wajib" },
+      ]
+    },
+    {
+      icon: "🧴", title: "Perlengkapan Bersama",
+      items: [
+        { name: "Kantong plastik / trash bag", note: "Wajib bawa turun semua sampah — Leave No Trace", priority: "wajib" },
+        { name: "Korek api / lighter", note: "Min. 2 buah, simpan di tempat berbeda", priority: "wajib" },
+        { name: "Tali paracord", note: "Serbaguna: tenda, jemuran, dll", priority: "penting" },
+        { name: "Duct tape kecil", note: "Repair darurat tenda, sepatu, dll", priority: "opsional" },
+      ]
+    },
+  ],
+  pribadi: [
+    {
+      icon: "🎒", title: "Packing Pribadi",
+      items: [
+        { name: "Carrier / Ransel", note: "Min. 50L untuk overnight", priority: "wajib" },
+        { name: "Rain Cover Carrier", note: "Musim pancaroba, antisipasi hujan", priority: "wajib" },
+        { name: "Sleeping Bag", note: "Rating min. 5°C — puncak bisa 8–12°C", priority: "wajib" },
+      ]
+    },
+    {
+      icon: "👕", title: "Pakaian & Layering",
+      items: [
+        { name: "Base Layer (Dryfit)", note: "Hindari katun — lambat kering & bikin hipotermia", priority: "wajib" },
+        { name: "Mid Layer / Fleece", note: "Untuk isolasi suhu dingin malam", priority: "wajib" },
+        { name: "Jaket Windbreaker / Hardshell", note: "Wajib di puncak, angin kencang", priority: "wajib" },
+        { name: "Celana Gunung", note: "Quick dry, bukan jeans", priority: "wajib" },
+        { name: "Kaus kaki wool / tebal", note: "2–3 pasang, satu cadangan", priority: "wajib" },
+        { name: "Sepatu Hiking", note: "Waterproof, ankle support", priority: "wajib" },
+        { name: "Sandal (untuk camp)", note: "Supaya sepatu bisa kering & kaki istirahat", priority: "penting" },
+        { name: "Buff / Balaclava", note: "Lindungi leher & telinga dari angin dingin", priority: "penting" },
+        { name: "Sarung tangan", note: "Penting buat malam di puncak", priority: "penting" },
+        { name: "Kupluk / Beanie", note: "Kehilangan panas terbesar dari kepala", priority: "penting" },
+        { name: "Gaiters", note: "Opsional tapi berguna kalau jalur basah", priority: "opsional" },
+      ]
+    },
+    {
+      icon: "💧", title: "Air & Makan Pribadi",
+      items: [
+        { name: "Botol / Tumbler (2 pcs)", note: "Satu bisa diisi air panas untuk tidur hangat", priority: "wajib" },
+        { name: "Snack Pribadi", note: "Coklat, energy bar, sesuai selera", priority: "penting" },
+        { name: "Elektrolit / Isotonic", note: "Cegah kram & dehidrasi", priority: "penting" },
+        { name: "Water filter / Steripen", note: "Backup kalau air habis darurat", priority: "opsional" },
+      ]
+    },
+    {
+      icon: "🔦", title: "Navigasi & Pencahayaan",
+      items: [
+        { name: "Headlamp", note: "Wajib minimal 2 unit per kelompok, 1 per orang", priority: "wajib" },
+        { name: "Baterai Cadangan / Power Bank", note: "Headlamp + HP harus cukup 2 hari", priority: "wajib" },
+        { name: "HP dengan GPS offline", note: "Download peta offline (Maps.me / Avenza)", priority: "wajib" },
+        { name: "Kompas", note: "Backup navigasi kalau HP mati", priority: "penting" },
+      ]
+    },
+    {
+      icon: "📸", title: "Kamera Pribadi",
+      items: [
+        { name: "Kamera / HP dengan mode pro", note: "Untuk Milky Way butuh manual mode", priority: "wajib" },
+        { name: "Extra baterai kamera", note: "Suhu dingin bikin baterai drop cepat", priority: "wajib" },
+        { name: "Memory card cadangan", note: "Jangan kehabisan di puncak", priority: "penting" },
+        { name: "Red light headlamp", note: "Tidak rusak night vision saat astrofoto", priority: "opsional" },
+      ]
+    },
+    {
+      icon: "🩹", title: "P3K Pribadi",
+      items: [
+        { name: "Obat pribadi / rutin", note: "Termasuk obat rutin kalau ada", priority: "wajib" },
+        { name: "Obat maag / antasida", note: "Makan tidak teratur di gunung", priority: "penting" },
+        { name: "Obat mabuk / diare", note: "Antisipasi kondisi perjalanan", priority: "penting" },
+        { name: "Blister patch (Compeed)", note: "Lebih bagus dari plester biasa untuk lecet", priority: "penting" },
+      ]
+    },
+    {
+      icon: "📋", title: "Dokumen Pribadi",
+      items: [
+        { name: "KTP (asli + fotokopi)", note: "Wajib untuk registrasi di basecamp", priority: "wajib" },
+      ]
+    },
+    {
+      icon: "🧴", title: "Kebersihan Pribadi",
+      items: [
+        { name: "Tisu basah & kering", note: "Pengganti mandi", priority: "penting" },
+        { name: "Sunscreen SPF 50+", note: "UV lebih kuat di ketinggian", priority: "penting" },
+        { name: "Lip balm", note: "Udara dingin bikin bibir pecah-pecah", priority: "penting" },
+      ]
+    },
+  ]
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let activeTab = 'kelompok';
+let editMode = false;
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('cikuray_v2');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return { data: JSON.parse(JSON.stringify(defaultData)), checked: {} };
+}
+
+function saveState() {
+  try { localStorage.setItem('cikuray_v2', JSON.stringify(state)); } catch(e) {}
+}
+
+let state = loadState();
+
+// ─── TAB ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('panel-kelompok').classList.toggle('active', tab === 'kelompok');
+  document.getElementById('panel-pribadi').classList.toggle('active', tab === 'pribadi');
+
+  const kBtn = document.getElementById('tab-kelompok');
+  const pBtn = document.getElementById('tab-pribadi');
+  kBtn.className = 'tab-btn' + (tab === 'kelompok' ? ' active-kelompok' : '');
+  pBtn.className = 'tab-btn' + (tab === 'pribadi' ? ' active-pribadi' : '');
+
+  const fill = document.getElementById('progressFill');
+  const text = document.getElementById('progressText');
+  const label = document.getElementById('progressLabel');
+  fill.className = 'progress-bar-fill ' + (tab === 'kelompok' ? 'fill-kelompok' : 'fill-pribadi');
+  text.className = 'progress-text ' + (tab === 'kelompok' ? 'text-kelompok' : 'text-pribadi');
+  label.textContent = tab === 'kelompok' ? 'KELOMPOK' : 'PRIBADI';
+
+  updateProgress();
+  populateCatSelect();
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+function updateProgress() {
+  const panel = document.getElementById('panel-' + activeTab);
+  const all = panel.querySelectorAll('.item');
+  const done = panel.querySelectorAll('.item.checked');
+  const total = all.length, doneN = done.length;
+  const pct = total ? Math.round((doneN / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${doneN} / ${total}`;
+  document.getElementById('doneBadge').style.display = (doneN === total && total > 0) ? 'block' : 'none';
+
+  // cat counts
+  panel.querySelectorAll('.category').forEach(cat => {
+    const c = cat.querySelectorAll('.item').length;
+    const ch = cat.querySelectorAll('.item.checked').length;
+    const el = cat.querySelector('.cat-count');
+    if (el) el.textContent = `${ch}/${c}`;
+  });
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderPanel(section) {
+  const container = document.getElementById('panel-' + section);
+  container.innerHTML = '';
+  const cats = state.data[section];
+
+  cats.forEach((cat, ci) => {
+    const catEl = document.createElement('div');
+    catEl.className = 'category';
+    catEl.dataset.ci = ci;
+    catEl.dataset.section = section;
+
+    const header = document.createElement('div');
+    header.className = 'cat-header';
+    header.innerHTML = `
+      <span class="cat-icon">${cat.icon}</span>
+      <span class="cat-title">${cat.title}</span>
+      <span class="cat-count">0/${cat.items.length}</span>
+      <span class="cat-toggle open">▼</span>
+    `;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'items-wrap';
+    wrap.style.maxHeight = '3000px';
+
+    header.addEventListener('click', () => {
+      const toggle = header.querySelector('.cat-toggle');
+      const isOpen = wrap.style.maxHeight !== '0px';
+      wrap.style.maxHeight = isOpen ? '0px' : '3000px';
+      toggle.classList.toggle('open', !isOpen);
+    });
+
+    cat.items.forEach((item, ii) => {
+      const itemEl = buildItemEl(section, ci, ii, item);
+      wrap.appendChild(itemEl);
+    });
+
+    catEl.appendChild(header);
+    catEl.appendChild(wrap);
+    if (ci < cats.length - 1) {
+      const div = document.createElement('div');
+      div.className = 'divider';
+      catEl.appendChild(div);
+    }
+    container.appendChild(catEl);
+  });
+}
+
+function buildItemEl(section, ci, ii, item) {
+  const id = `${section}_${ci}_${ii}`;
+  const el = document.createElement('div');
+  el.className = 'item' + (state.checked[id] ? ' checked' : '');
+  el.dataset.id = id;
+
+  const cb = document.createElement('div');
+  cb.className = 'checkbox';
+  cb.textContent = state.checked[id] ? '✓' : '';
+  cb.addEventListener('click', (e) => { if (!editMode) { e.stopPropagation(); toggleItem(el, id); } });
+
+  const info = document.createElement('div');
+  info.className = 'item-info';
+  info.innerHTML = `<div class="item-name">${item.name}</div>${item.note ? `<div class="item-note">${item.note}</div>` : ''}`;
+  info.addEventListener('click', () => { if (!editMode) toggleItem(el, id); });
+
+  const badge = document.createElement('span');
+  badge.className = `priority ${item.priority}`;
+  badge.textContent = item.priority;
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'delete-btn';
+  delBtn.textContent = '✕';
+  delBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    deleteItem(section, ci, ii);
+  });
+
+  el.appendChild(cb);
+  el.appendChild(info);
+  el.appendChild(badge);
+  el.appendChild(delBtn);
+  return el;
+}
+
+function toggleItem(el, id) {
+  el.classList.toggle('checked');
+  const cb = el.querySelector('.checkbox');
+  if (el.classList.contains('checked')) {
+    state.checked[id] = true;
+    cb.textContent = '✓';
+  } else {
+    delete state.checked[id];
+    cb.textContent = '';
+  }
+  saveState();
+  updateProgress();
+}
+
+// ─── DELETE ──────────────────────────────────────────────────────────────────
+function deleteItem(section, ci, ii) {
+  state.data[section][ci].items.splice(ii, 1);
+  // remove empty categories
+  if (state.data[section][ci].items.length === 0) {
+    state.data[section].splice(ci, 1);
+  }
+  // clean checked keys for this section (rebuild)
+  const newChecked = {};
+  Object.keys(state.checked).forEach(k => {
+    if (!k.startsWith(section + '_')) newChecked[k] = state.checked[k];
+  });
+  state.checked = newChecked;
+  saveState();
+  renderPanel(section);
+  updateProgress();
+  populateCatSelect();
+}
+
+// ─── EDIT MODE ───────────────────────────────────────────────────────────────
+function toggleEditMode() {
+  editMode = !editMode;
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('edit-mode', editMode));
+  const btn = document.getElementById('editBtn');
+  btn.classList.toggle('active', editMode);
+  btn.textContent = editMode ? '✓ Selesai' : '✏️ Hapus';
+}
+
+// ─── ADD MODAL ───────────────────────────────────────────────────────────────
+function populateCatSelect() {
+  const sel = document.getElementById('inputCat');
+  const section = document.getElementById('inputSection').value;
+  sel.innerHTML = state.data[section].map((c, i) => `<option value="${i}">${c.icon} ${c.title}</option>`).join('');
+}
+
+function openModal() {
+  document.getElementById('inputSection').value = activeTab;
+  populateCatSelect();
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputNote').value = '';
+  document.getElementById('inputPriority').value = 'wajib';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('inputName').focus(), 300);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+document.getElementById('inputSection').addEventListener('change', populateCatSelect);
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function addItem() {
+  const name = document.getElementById('inputName').value.trim();
+  if (!name) { document.getElementById('inputName').focus(); return; }
+  const section = document.getElementById('inputSection').value;
+  const ci = parseInt(document.getElementById('inputCat').value);
+  const note = document.getElementById('inputNote').value.trim();
+  const priority = document.getElementById('inputPriority').value;
+
+  state.data[section][ci].items.push({ name, note, priority });
+  saveState();
+  renderPanel(section);
+  if (activeTab !== section) switchTab(section); else updateProgress();
+  closeModal();
+}
+
+// ─── RESET ───────────────────────────────────────────────────────────────────
+function resetAll() {
+  if (!confirm('Reset semua centang di tab ini?')) return;
+  const prefix = activeTab + '_';
+  Object.keys(state.checked).forEach(k => { if (k.startsWith(prefix)) delete state.checked[k]; });
+  saveState();
+  renderPanel(activeTab);
+  updateProgress();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderPanel('kelompok');
+renderPanel('pribadi');
+updateProgress();
+populateCatSelect();
+</script>
+</body>
+</html>
